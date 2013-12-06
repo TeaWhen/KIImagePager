@@ -20,12 +20,9 @@
     UIScrollView *_scrollView;
     UIPageControl *_pageControl;
     UILabel *_countLabel;
-    UIView *_indicatorBackground;
     NSTimer *_slideshowTimer;
     NSUInteger _slideshowTimeInterval;
-    NSMutableDictionary *_activityIndicators;
-    
-    BOOL _indicatorDisabled;
+
 }
 @end
 
@@ -35,7 +32,6 @@
 @synthesize delegate = _delegate;
 @synthesize contentMode = _contentMode;
 @synthesize pageControl = _pageControl;
-@synthesize indicatorDisabled = _indicatorDisabled;
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -70,44 +66,7 @@
     self.clipsToBounds = YES;
     [self initializeScrollView];
     [self initializePageControl];
-    if(!_indicatorDisabled) {
-        [self initalizeImageCounter];
-    }
     [self loadData];
-}
-
-- (UIColor *) randomColor
-{
-    return [UIColor colorWithHue:(arc4random() % 256 / 256.0)
-                      saturation:(arc4random() % 128 / 256.0) + 0.5
-                      brightness:(arc4random() % 128 / 256.0) + 0.5
-                           alpha:1];
-}
-
-- (void) initalizeImageCounter
-{
-    _indicatorBackground = [[UIView alloc] initWithFrame:CGRectMake(_scrollView.frame.size.width-(kOverlayWidth-4),
-                                                                    _scrollView.frame.size.height-kOverlayHeight,
-                                                                    kOverlayWidth,
-                                                                    kOverlayHeight)];
-    _indicatorBackground.backgroundColor = [UIColor whiteColor];
-    _indicatorBackground.alpha = 0.7f;
-    _indicatorBackground.layer.cornerRadius = 5.0f;
-    
-    UIImageView *icon = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 18, 18)];
-    [icon setImage:[UIImage imageNamed:@"KICamera"]];
-    icon.center = CGPointMake(_indicatorBackground.frame.size.width-18, _indicatorBackground.frame.size.height/2);
-    [_indicatorBackground addSubview:icon];
-    
-    _countLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 48, 24)];
-    [_countLabel setTextAlignment:NSTextAlignmentCenter];
-    [_countLabel setBackgroundColor:[UIColor clearColor]];
-    [_countLabel setTextColor:[UIColor blackColor]];
-    [_countLabel setFont:[UIFont systemFontOfSize:11.0f]];
-    _countLabel.center = CGPointMake(15, _indicatorBackground.frame.size.height/2);
-    [_indicatorBackground addSubview:_countLabel];
-    
-    [self addSubview:_indicatorBackground];
 }
 
 - (void) reloadData
@@ -121,7 +80,7 @@
 #pragma mark - ScrollView Initialization
 - (void) initializeScrollView
 {
-    _scrollView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height)];
+    _scrollView = [[UIScrollView alloc] initWithFrame:self.frame];
     _scrollView.delegate = self;
     _scrollView.pagingEnabled = YES;
     _scrollView.showsHorizontalScrollIndicator = NO;
@@ -133,8 +92,7 @@
 - (void) loadData
 {
     NSArray *aImageUrls = (NSArray *)[_dataSource arrayWithImages];
-    _activityIndicators = [NSMutableDictionary new];
-    
+
     if([aImageUrls count] > 0) {
         [_scrollView setContentSize:CGSizeMake(_scrollView.frame.size.width * [aImageUrls count],
                                                _scrollView.frame.size.height)];
@@ -142,50 +100,11 @@
         for (int i = 0; i < [aImageUrls count]; i++) {
             CGRect imageFrame = CGRectMake(_scrollView.frame.size.width * i, 0, _scrollView.frame.size.width, _scrollView.frame.size.height);
             UIImageView *imageView = [[UIImageView alloc] initWithFrame:imageFrame];
-            [imageView setBackgroundColor:[UIColor clearColor]];
-            [imageView setContentMode:[_dataSource contentModeForImage:i]];
-            [imageView setTag:i];
-
-            if([[aImageUrls objectAtIndex:i] isKindOfClass:[UIImage class]]) {
-                // Set ImageView's Image directly
-                [imageView setImage:(UIImage *)[aImageUrls objectAtIndex:i]];
-            } else if([[aImageUrls objectAtIndex:i] isKindOfClass:[NSString class]] ||
-                      [[aImageUrls objectAtIndex:i] isKindOfClass:[NSURL class]]) {
-                // Instantiate and show Actvity Indicator
-                UIActivityIndicatorView *activityIndicator = [UIActivityIndicatorView new];
-                activityIndicator.center = (CGPoint){_scrollView.frame.size.width/2, _scrollView.frame.size.height/2};
-                activityIndicator.activityIndicatorViewStyle = UIActivityIndicatorViewStyleWhite;
-                [imageView addSubview:activityIndicator];
-                [activityIndicator startAnimating];
-                [_activityIndicators setObject:activityIndicator forKey:[NSString stringWithFormat:@"%d", i]];
-                
-                // Asynchronously retrieve image
-                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-                    NSData *imageData = [NSData dataWithContentsOfURL:
-                                         [[aImageUrls objectAtIndex:i] isKindOfClass:[NSURL class]]?
-                                         [aImageUrls objectAtIndex:i]:
-                                         [NSURL URLWithString:(NSString *)[aImageUrls objectAtIndex:i]]];
-                    dispatch_sync(dispatch_get_main_queue(), ^{
-                        [imageView setImage:[UIImage imageWithData:imageData]];
-
-                        // Stop and Remove Activity Indicator
-                        UIActivityIndicatorView *indicatorView = (UIActivityIndicatorView *)[_activityIndicators objectForKey:[NSString stringWithFormat:@"%d", i]];
-                        if (indicatorView) {
-                            [indicatorView stopAnimating];
-                            [_activityIndicators removeObjectForKey:[NSString stringWithFormat:@"%d", i]];
-                        }
-                    });
-                });
-            }
-            
-            // Add GestureRecognizer to ImageView
-            UITapGestureRecognizer *singleTapGestureRecognizer = [[UITapGestureRecognizer alloc]
-                                                                  initWithTarget:self
-                                                                  action:@selector(imageTapped:)];
-            [singleTapGestureRecognizer setNumberOfTapsRequired:1];
-            [imageView addGestureRecognizer:singleTapGestureRecognizer];
-            [imageView setUserInteractionEnabled:YES];
-            
+            imageView.BackgroundColor = [UIColor clearColor];
+            imageView.ContentMode = [_dataSource contentModeForImage:i];
+            imageView.tag = i;
+            imageView.image = (UIImage *)[aImageUrls objectAtIndex:i];
+            imageView.userInteractionEnabled = NO;
             [_scrollView addSubview:imageView];
         }
         
@@ -197,26 +116,6 @@
         [blankImage setImage:[_dataSource placeHolderImageForImagePager]];
         [_scrollView addSubview:blankImage];
     }
-}
-
-- (void) imageTapped:(UITapGestureRecognizer *)sender
-{
-    if([_delegate respondsToSelector:@selector(imagePager:didSelectImageAtIndex:)]) {
-        [_delegate imagePager:self didSelectImageAtIndex:[(UIGestureRecognizer *)sender view].tag];
-    }
-}
-
-- (void) setIndicatorDisabled:(BOOL)indicatorDisabled
-{
-    if(indicatorDisabled) {
-        [_pageControl removeFromSuperview];
-        [_indicatorBackground removeFromSuperview];
-    } else {
-        [self addSubview:_pageControl];
-        [self addSubview:_indicatorBackground];
-    }
-    
-    _indicatorDisabled = indicatorDisabled;
 }
 
 #pragma mark - PageControl Initialization
@@ -242,7 +141,7 @@
 
 #pragma mark - Slideshow
 - (void) slideshowTick:(NSTimer *)timer
-{    
+{
     NSUInteger nextPage = 0;
     if([_pageControl currentPage] < ([[_dataSource arrayWithImages] count] - 1)) {
         nextPage = [_pageControl currentPage] + 1;
