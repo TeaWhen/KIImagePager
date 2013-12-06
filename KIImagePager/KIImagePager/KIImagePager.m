@@ -7,8 +7,6 @@
 //
 
 #define kPageControlHeight  30
-#define kOverlayWidth       50
-#define kOverlayHeight      15
 
 #import "KIImagePager.h"
 
@@ -86,6 +84,7 @@
     _scrollView.showsHorizontalScrollIndicator = NO;
     _scrollView.showsVerticalScrollIndicator = NO;
     _scrollView.autoresizingMask = self.autoresizingMask;
+    _scrollView.backgroundColor = [UIColor whiteColor];
     [self addSubview:_scrollView];
 }
 

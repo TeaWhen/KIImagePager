@@ -26,7 +26,6 @@
 
 @optional
 - (void) imagePager:(KIImagePager *)imagePager didScrollToIndex:(NSUInteger)index;
-- (void) imagePager:(KIImagePager *)imagePager didSelectImageAtIndex:(NSUInteger)index;
 
 @end
 
@@ -42,4 +41,3 @@
 - (void) reloadData;
 
 @end
-
